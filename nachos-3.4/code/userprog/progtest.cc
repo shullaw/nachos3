@@ -32,7 +32,7 @@ StartProcess(char *filename)
 	return;
     }
 	
-    space = new AddrSpace(executable);    
+    space = new AddrSpace(executable, 0);  // 0 is location of main thread    
     currentThread->space = space;
 
     delete executable;			// close file

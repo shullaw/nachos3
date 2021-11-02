@@ -45,6 +45,22 @@ SwapHeader (NoffHeader *noffH)
 	noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
 }
 
+/* ---------------------NOTES/NOT IMPLEMENTED---------------------------------- */ // SHULLAW
+//  Modify the AddrSpace constructor so that pageTable is not allocated physical pages starting from 0.
+//  Use a bitmap to keep track of which pages are allocated and check if the page is allocated before allocating it.
+//  Assign the physical page number to the pageTable entry and set the pageTable entry to be valid.
+//  Also, set the pageTable entry to be read-only.
+// The pageTable is a two-dimensional array of PageInfo structs.
+// The first dimension is the page number.
+// The second dimension is the offset within the page.
+// The PageInfo struct contains the virtual address, the physical address, and the read/write status.
+// The virtual address is the address of the pageTable entry.
+// The physical address is the address of the page in physical memory.
+// The read/write status is whether the page is read-only or read-write.
+// Once you know which physical page to allocate, zero out the page in physical memory.
+// Change the pageTable entry to be valid.
+/* ------------------------------------------------------- */
+
 //----------------------------------------------------------------------
 // AddrSpace::AddrSpace
 // 	Create an address space to run a user program.
@@ -56,11 +72,24 @@ SwapHeader (NoffHeader *noffH)
 //	First, set up the translation from program memory to physical 
 //	memory.  For now, this is really simple (1:1), since we are
 //	only uniprogramming, and we have a single unsegmented page table
-//
+/* ------------------SHULLAW-------------------------------- */
 //	"executable" is the file containing the object code to load into memory
+//  Reach here from two places:
+//  1.) user program that runs using -x argument and handled in progtest.cc
+//  2.) user exceptions that occur when the main user program calls Exec() to run other user programs
+//  Need to handle:
+//  1.) Remove all ASSERTs in this file and surround them with if-else statements are print out the error message
+//  2.) After size of executable is determined, allocate the physical memory for the program and handle swap files (TASK 4)
+//  Create file name based on threadID
+//  Base code sets threadID to 1 as default and incremented in SC_EXEC after setting up AddrSpace
+//  Update AddrSpace to AddrSpace(OpenFile *executable, int threadID) 
 //----------------------------------------------------------------------
+AddrSpace::AddrSpace()
+{
+    pageTable = NULL;
+}
 
-AddrSpace::AddrSpace(OpenFile *executable)
+AddrSpace::AddrSpace(OpenFile *executable, int threadID)     /* ------------------SHULLAW-------------------------------- */
 {
     NoffHeader noffH;
     unsigned int i, size;
@@ -88,10 +117,14 @@ AddrSpace::AddrSpace(OpenFile *executable)
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
+
+    /* ------------------SHULLAW-------------------------------- */
 	pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-	pageTable[i].physicalPage = i;
-	pageTable[i].valid = TRUE;
-	pageTable[i].use = FALSE;
+	// pageTable[i].physicalPage = i;  // not necessary, since we set valid bit to false
+	pageTable[i].valid = FALSE;  // set this valid bit to false to cause pageFaultException and handle in exception.cc
+	pageTable[i].use = FALSE;  // handle page loading later during page fault
+    /* ------------------SHULLAW-------------------------------- */
+
 	pageTable[i].dirty = FALSE;
 	pageTable[i].readOnly = FALSE;  // if the code segment was entirely on 
 					// a separate page, we could set its 
@@ -100,7 +133,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
 // zero out the entire address space, to zero the unitialized data segment 
 // and the stack segment
-    bzero(machine->mainMemory, size);
+    bzero(machine->mainMemory, size);  // needs to be changed to only zero out the pages being currently allocated
 
 // then, copy in the code and data segments into memory
     if (noffH.code.size > 0) {
@@ -115,6 +148,22 @@ AddrSpace::AddrSpace(OpenFile *executable)
         executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
+    /* ------------------SHULLAW-------------------------------- */
+    // Create swapfile
+    fileSystem->Create(swapFileName, UserStackSizeMulti);  // create swap file and allocate space for it
+    fileSystem->Open(swapFileName);  // open swap file
+    // Create a buffer (temporary array of characters) of size equal to noffH.code.size + noffH.initData.size + noffH.uninitData.size
+    int sizeOfBuffer = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
+    char *buffer = new char[sizeOfBuffer];
+    // Copy the code segment into the buffer executable->ReadAt(buffer, sizeOfBuffer, 0);
+    executable->ReadAt(buffer, sizeOfBuffer, 0);
+    // Delete pointer to buffer and swap files so that program does not consume memory
+    delete [] buffer;
+    delete executable;
+    // Handle page table
+    // Set valid bit to false (this is done above)
+/* ------------------SHULLAW-------------------------------- */
+
 
 }
 
@@ -125,7 +174,9 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
 AddrSpace::~AddrSpace()
 {
-   delete pageTable;
+    /* ------------------SHULLAW-------------------------------- */
+//    delete pageTable;  // old version, only for one process running at a time
+    /* ------------------SHULLAW-------------------------------- */
 }
 
 //----------------------------------------------------------------------

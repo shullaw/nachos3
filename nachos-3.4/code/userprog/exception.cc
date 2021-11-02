@@ -157,7 +157,13 @@ ExceptionHandler(ExceptionType which)
 				SWrite(ch, j, arg3);
 			}
 			break;
+			    /* ------------------SHULLAW-------------------------------- */
 		case SC_Exec :	// Executes a user process inside another user process.
+						// Called when a user process triggers the Exec() system call exception.
+						// The first argument is the name of the first file the user program is trying to execute.
+						// Runs the same process as StartProcess(), but in a different thread.
+		    /* ------------------SHULLAW-------------------------------- */  // no code changes as of yet, just this comment above from FAQ
+
 		   {
 				printf("SYSTEM CALL: Exec, called by thread %i.\n",currentThread->getID());
 
@@ -193,7 +199,7 @@ ExceptionHandler(ExceptionType which)
 
 				// Calculate needed memory space
 				AddrSpace *space;
-				space = new AddrSpace(executable);
+				space = new AddrSpace(executable, threadID);  // passing threadID as argument for any user program that executes using user exception
 				delete executable;
 				// Do we have enough space?
 				if(!currentThread->killNewChild)	// If so...
