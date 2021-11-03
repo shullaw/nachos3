@@ -23,17 +23,17 @@ class Lock;
 class BitMap;
 
 // for uniprogramming
-#define UserStackSizeUni		1024
+// #define UserStackSize		1024
 
 // for multiprogramming
 #define UserStackNumPage 64  // increase this as necessary!
-#define UserStackSizeMulti		(UserStackNumPage * PageSize)  // multiple of pageSize
+#define UserStackSize		(UserStackNumPage * PageSize)  // multiple of pageSize
 
-#define MaxUserThreads      16  // UserThreads * UserStackNumPage = UserStackSizeMulti
+#define MaxUserThreads      16  // UserThreads * UserStackNumPage = UserStackSize
 
 class AddrSpace {
   public:
-    AddrSpace(OpenFile *executable, int threadID);	// Create an address space,
+    AddrSpace();	// Create an address space,
 					// initializing it with the program
 					// stored in the file "executable"
     ~AddrSpace();			// De-allocate an address space
@@ -43,6 +43,11 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
+
+    /*-----------SHULLAW----------------*/
+    // used to create address space for user program
+    int CreateAddrSpace(OpenFile *executable, int threadID);
+    /*-----------SHULLAW----------------*/
 
     
   private:

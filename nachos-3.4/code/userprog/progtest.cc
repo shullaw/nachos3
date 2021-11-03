@@ -31,8 +31,10 @@ StartProcess(char *filename)
 	printf("Unable to open file %s\n", filename);
 	return;
     }
-	
-    space = new AddrSpace(executable, 0);  // 0 is location of main thread    
+	/*--------------SHULLAW---------------*/
+    space = new AddrSpace();  // 0 is location of main thread
+    space->CreateAddrSpace(executable, 0);
+    /*--------------SHULLAW---------------*/
     currentThread->space = space;
 
     delete executable;			// close file
