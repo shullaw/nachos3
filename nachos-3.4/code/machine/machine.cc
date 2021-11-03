@@ -212,3 +212,19 @@ void Machine::WriteRegister(int num, int value)
 	registers[num] = value;
     }
 
+//--------------------------Frank---------------------------------------------//
+// I went through Jason's video showing how to print and look through main memory
+// This is the simple version that prints all the pages even if they are empty
+// I can adjust it as needed to avoid large outputs 
+void Machine::PrintMemory() {
+	printf("\nMain Mem:\n");
+	for(int pageNum = 0; pageNum < NumPhysPages; pageNum++){
+		printf("Page Num %d:", pageNum);
+		for(int i = 0; i < PageSize; i++){
+			printf("%d ", mainMemory[(pageNum * PageSize) + i]);
+		}
+		printf("\n\n");
+	}
+	printf("\n");
+}
+//---------------------------------------------------------------------------//

@@ -233,6 +233,8 @@ int AddrSpace::CreateAddrSpace(OpenFile *executable, int threadID)
             executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
                                noffH.initData.size, noffH.initData.inFileAddr);
         }
+
+	machine->PrintMemory();
         /* ------------------SHULLAW-------------------------------- */
         // Create swapfile
         // Create file name based on threadID

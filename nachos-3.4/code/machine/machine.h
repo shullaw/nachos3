@@ -153,6 +153,14 @@ class Machine {
 // Note that *all* communication between the user program and the kernel 
 // are in terms of these data structures.
 
+
+//----------------------------Frank---------------------------------------//
+// This is the PrintMemory function Jason walked through in his video. 
+// It's currently commented out and can be used to look through mem pages.
+
+    //void PrintMemory(); 
+//------------------------------------------------------------------------//
+
     char *mainMemory;		// physical memory to store user program,
 				// code and data, while executing
     int registers[NumTotalRegs]; // CPU registers, for executing user programs
