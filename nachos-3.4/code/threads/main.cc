@@ -46,6 +46,7 @@
 // All rights reserved.  See copyright.h for copyright notice and limitation 
 // of liability and disclaimer of warranty provisions.
 
+// STARTING POINT OF ANY PROGRAM
 #define MAIN
 #include "copyright.h"
 #undef MAIN
@@ -93,9 +94,12 @@ main(int argc, char **argv)
             printf (copyright);
 #ifdef USER_PROGRAM
         if (!strcmp(*argv, "-x")) {        	// run a user program
-	    ASSERT(argc > 1);
-            StartProcess(*(argv + 1));
-		printf("I'm here");
+		/* ------------------SHULLAW-------------------------------- */
+		// if (argc > 1) StartProcess(); else printf("%s\n", "No program name maybe?  Not sure on this *SHULLAW*");
+	    if (argc > 1);  // Remove the ASSSERT(arc > 1) and enclose the code in if(arc > 1)
+            StartProcess(*(argv + 1));  // argv[1] is the name of the file, which is the program to start the program defined in progtest.cc
+		printf("I'm here");  // StartProcess() runs the user program and never returns, so no statement below will execute
+		/* ------------------SHULLAW-------------------------------- */
             argCount = 2;
         } else if (!strcmp(*argv, "-c")) {      // test the console
 	    if (argc == 1)

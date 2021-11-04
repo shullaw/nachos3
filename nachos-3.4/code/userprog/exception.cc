@@ -157,7 +157,13 @@ ExceptionHandler(ExceptionType which)
 				SWrite(ch, j, arg3);
 			}
 			break;
+			    /* ------------------SHULLAW-------------------------------- */
 		case SC_Exec :	// Executes a user process inside another user process.
+						// Called when a user process triggers the Exec() system call exception.
+						// The first argument is the name of the first file the user program is trying to execute.
+						// Runs the same process as StartProcess(), but in a different thread.
+		    /* ------------------SHULLAW-------------------------------- */  // made changes for threadID/AddrSpace
+
 		   {
 				printf("SYSTEM CALL: Exec, called by thread %i.\n",currentThread->getID());
 
@@ -193,7 +199,10 @@ ExceptionHandler(ExceptionType which)
 
 				// Calculate needed memory space
 				AddrSpace *space;
-				space = new AddrSpace(executable);
+				/* ------------------SHULLAW-------------------------------- */
+				space = new AddrSpace(executable, threadID);  	   // passing threadID as argument for any
+				// space->CreateAddrSpace(executable, threadID);  // user program that executes using user exception
+				/* ------------------SHULLAW-------------------------------- */
 				delete executable;
 				// Do we have enough space?
 				if(!currentThread->killNewChild)	// If so...
@@ -209,6 +218,7 @@ ExceptionHandler(ExceptionType which)
 				else	// If not...
 				{
 					machine->WriteRegister(2, -1 * (threadID + 1));	// Return an error code
+				/* ------------------SHULLAW-------------------------------- */
 					currentThread->killNewChild = false;	// Reset our variable
 				}
 				break;	// Get out.
@@ -250,6 +260,10 @@ ExceptionHandler(ExceptionType which)
 					printf("ERROR: Process %i exited abnormally!\n", currentThread->getID());
 				
 				if(currentThread->space)	// Delete the used memory from the process.
+				/* ------------------SHULLAW-------------------------------- */
+				// consult inverted page table to find the physical pages used  
+				// by the current thread and clear those bits in the bitmap (NOT IMPLEMENTED YET)
+				/* ------------------SHULLAW-------------------------------- */
 					delete currentThread->space;
 				currentThread->Finish();	// Delete the thread.
 
