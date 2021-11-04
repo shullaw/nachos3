@@ -200,8 +200,8 @@ ExceptionHandler(ExceptionType which)
 				// Calculate needed memory space
 				AddrSpace *space;
 				/* ------------------SHULLAW-------------------------------- */
-				space = new AddrSpace();  // passing threadID as argument for any user program that executes using user exception
-				space->CreateAddrSpace(executable, threadID);
+				space = new AddrSpace(executable, threadID);  	   // passing threadID as argument for any
+				// space->CreateAddrSpace(executable, threadID);  // user program that executes using user exception
 				/* ------------------SHULLAW-------------------------------- */
 				delete executable;
 				// Do we have enough space?
@@ -261,8 +261,8 @@ ExceptionHandler(ExceptionType which)
 				
 				if(currentThread->space)	// Delete the used memory from the process.
 				/* ------------------SHULLAW-------------------------------- */
-				// consult inverted page table to find the physical pages used by the current thread and clear those bits in the bitmap
-				// not implemented yet
+				// consult inverted page table to find the physical pages used  
+				// by the current thread and clear those bits in the bitmap (NOT IMPLEMENTED YET)
 				/* ------------------SHULLAW-------------------------------- */
 					delete currentThread->space;
 				currentThread->Finish();	// Delete the thread.
