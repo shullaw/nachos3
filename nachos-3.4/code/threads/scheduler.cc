@@ -21,7 +21,7 @@
 #include "copyright.h"
 #include "scheduler.h"
 #include "system.h"
-
+class AddrSpace;
 //----------------------------------------------------------------------
 // Scheduler::Scheduler
 // 	Initialize the list of ready but not running threads to empty.
@@ -105,6 +105,7 @@ Scheduler::Run (Thread *nextThread)
     if (currentThread->space != NULL) {	// if this thread is a user program,
         currentThread->SaveUserState(); // save the user's CPU registers
 	currentThread->space->SaveState();
+    
     }
 #endif
     

@@ -105,10 +105,12 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
     }
 
     // how big is address space?
-    size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize; // we need to increase the size
+    size = noffH.code.size + noffH.initData.size + noffH.uninitData.size; // we need to increase the size
                                                                                           // to leave room for the stack
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
+    // machine->DumpState();  // Machine registers
+    
 
     // ASSERT(numPages <= NumPhysPages);		// check we're not trying
                                                 // to run anything too big --
@@ -142,9 +144,10 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
             /* ------------------SHULLAW-------------------------------- */
             pageTable[i].virtualPage = i; // for now, virtual page # = phys page #
             // pageTable[i].physicalPage = i;  // not necessary, since we set valid bit to false
+            //set true for task 2, bitmap, set offset for mainmem readat
             pageTable[i].valid = FALSE; // set this valid bit to false to cause pageFaultException and handle in exception.cc
             pageTable[i].use = FALSE;   // handle page loading later during page fault
-                                        /* ------------------SHULLAW-------------------------------- */
+            /* ------------------SHULLAW-------------------------------- */
 
             pageTable[i].dirty = FALSE;
             pageTable[i].readOnly = FALSE; // if the code segment was entirely on
@@ -175,10 +178,10 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
         // Create swapfile
         // Create file name based on threadID
         char swapFileName[20];  // swapfile = 8 + 100000 threads = 5 + 1 = 14...so uhh just being safe with 20
-        sprintf(swapFileName, "swapfile%d", threadID);
-        printf("SWIZZLE FIZZLE: %s\n", swapFileName);
         // Potentially waste .6 MB of space, change later maybe
         // Exit(100);  // for testing
+        sprintf(swapFileName, "swapfile%d", threadID);
+        printf("SWIZZLE FIZZLE: %s\n", swapFileName);
         fileSystem->Create(swapFileName, UserStackSize); // create swap file and allocate space for it
         fileSystem->Open(swapFileName);                       // open swap file
         // Create a buffer (temporary array of characters) of size equal to noffH.code.size + noffH.initData.size + noffH.uninitData.size

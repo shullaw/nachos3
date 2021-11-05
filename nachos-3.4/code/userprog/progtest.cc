@@ -33,7 +33,7 @@ void StartProcess(char *filename)
     }
     /*--------------SHULLAW---------------*/
     space = new AddrSpace(executable, 0); // 0 is location of main thread
-    // space->CreateAddrSpace(executable, 0);
+    
     currentThread->space = space;
 
     if (executable)
