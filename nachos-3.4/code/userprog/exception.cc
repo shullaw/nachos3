@@ -28,6 +28,7 @@
 #include "syscall.h"
 #include "addrspace.h"   // FA98
 #include "sysdep.h"   // FA98
+// #include "bitmap.h"
 
 // begin FA98
 
@@ -260,11 +261,14 @@ ExceptionHandler(ExceptionType which)
 					printf("ERROR: Process %i exited abnormally!\n", currentThread->getID());
 				
 				if(currentThread->space)	// Delete the used memory from the process.
+				{
 				/* ------------------SHULLAW-------------------------------- */
 				// consult inverted page table to find the physical pages used  
 				// by the current thread and clear those bits in the bitmap (NOT IMPLEMENTED YET)
 				/* ------------------SHULLAW-------------------------------- */
+					bitMap->Clear(currentThread->space->getNumPages());
 					delete currentThread->space;
+				}
 				currentThread->Finish();	// Delete the thread.
 
 				break;
