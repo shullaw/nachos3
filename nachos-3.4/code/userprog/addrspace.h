@@ -43,7 +43,7 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
-    
+    unsigned int getNumPages();  // return numPages
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!

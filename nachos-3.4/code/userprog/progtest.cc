@@ -33,7 +33,7 @@ void StartProcess(char *filename)
     }
     /*--------------SHULLAW---------------*/
     space = new AddrSpace(executable, 0); // 0 is location of main thread
-    
+
     currentThread->space = space;
 
     if (executable)
@@ -44,9 +44,9 @@ void StartProcess(char *filename)
 
         space->InitRegisters(); // set the initial register values
         space->RestoreState();  // load page table register
-        printf("Filename %s RestoreState.\n", filename);
+        printf("Filename %s RestoreState.  Run() is next call.\n", filename);
         machine->Run(); // jump to the user progam
-        printf("Filename %s Run.\n", filename);
+        printf("Filename %s Run.\n", filename);  // shouldn't see this print
         ASSERT(FALSE);  // machine->Run never returns;
                         // the address space exits
                         // by doing the syscall "exit"
