@@ -43,6 +43,7 @@
 #ifdef USER_PROGRAM
 #include "machine.h"
 #include "addrspace.h"
+class AddrSpace;  // needed to let gcc know that AddrSpace is a class
 #include "list.h"
 #endif
 

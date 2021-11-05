@@ -16,7 +16,6 @@
 #include "stats.h"
 #include "timer.h"
 #include "bitmap.h"
-#include "synch.h"
 
 // Initialization and cleanup routines
 extern void Initialize(int argc, char **argv); 	// Initialization,
@@ -37,6 +36,7 @@ extern int threadChoice;
 extern Machine* machine;	// user program memory and registers
 extern List* activeThreads;	// active thread list for process management
 extern int threadID;	// unique process id
+extern BitMap *bitMap;  // shullaw: global bitmap for pageTable
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 
