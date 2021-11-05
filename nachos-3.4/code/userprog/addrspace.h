@@ -16,21 +16,34 @@
 #include "copyright.h"
 #include "filesys.h"
 
-#define UserStackSize		1024 	// increase this as necessary!
+#include "noff.h"  // for pageSize
+#include "synch.h" // for lock
+class Semaphore;
+class Lock;
+class BitMap;
+
+// for uniprogramming
+#define UserStackSize		1024
+
+// for multiprogramming
+#define UserStackNumPage 64  // increase this as necessary!
+// #define UserStackSize		(UserStackNumPage * PageSize)  // multiple of pageSize
+
+#define MaxUserThreads      16  // UserThreads * UserStackNumPage = UserStackSize
 
 class AddrSpace {
   public:
-    AddrSpace(OpenFile *executable);	// Create an address space,
+    AddrSpace(OpenFile *executable, int threadID);	// Create an address space,
 					// initializing it with the program
 					// stored in the file "executable"
     ~AddrSpace();			// De-allocate an address space
 
     void InitRegisters();		// Initialize user-level CPU registers,
-					// before jumping to user code
+          // before jumping to user code
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
-
+    unsigned int getNumPages();  // return numPages
   private:
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!

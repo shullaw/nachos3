@@ -61,7 +61,7 @@ Thread::Thread(char* threadName)
 
 Thread::~Thread()
 {
-    //DEBUG('t', "Deleting thread \"%i\"\n", ID);
+    // DEBUG('t', "Deleting thread \"%i\"\n", ID);
 
     ASSERT(this != currentThread);
     if (stack != NULL)
@@ -91,7 +91,7 @@ Thread::~Thread()
 void 
 Thread::Fork(VoidFunctionPtr func, int arg)
 {
-    //DEBUG('t', "Forking thread \"%i\" with func = 0x%x, arg = %d\n", ID, (int) func, arg);
+    // DEBUG('t', "Forking thread \"%i\" with func = 0x%x, arg = %d\n", ID, (int) func, arg);
     
     StackAllocate(func, arg);
 
@@ -149,7 +149,7 @@ Thread::Finish ()
     (void) interrupt->SetLevel(IntOff);		
     ASSERT(this == currentThread);
     
-    //DEBUG('t', "Finishing thread \"%i\"\n", getID());
+    // DEBUG('t', "Finishing thread \"%i\"\n", getID());
     
     threadToBeDestroyed = currentThread;
 #ifdef USER_PROGRAM
@@ -199,7 +199,7 @@ Thread::Yield ()
     ASSERT(this == currentThread);
 	//printf("CONTEXT SWITCH: Yielding Thread %i to ",getID());
     
-    //DEBUG('t', "Yielding thread \"%i\"\n", getID());
+    // DEBUG('t', "Yielding thread \"%i\"\n", getID());
     
     nextThread = scheduler->FindNextToRun();
     if (nextThread != NULL) {
@@ -237,7 +237,7 @@ Thread::Sleep ()
     ASSERT(this == currentThread);
     ASSERT(interrupt->getLevel() == IntOff);
     
-    //DEBUG('t', "Sleeping thread \"%i\"\n", getID());
+    // DEBUG('t', "Sleeping thread \"%i\"\n", getID());
 
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == NULL)
