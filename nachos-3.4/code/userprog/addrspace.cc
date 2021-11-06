@@ -228,6 +228,40 @@ TranslationEntry* AddrSpace::getPageTable()
 {
     return pageTable;
 }
+//determine which segment does a address located in
+//return value: 
+int AddrSpace::whichSeg(int virtAddr, Segment* segPtr) {
+    
+    if (noffH.code.size > 0) {
+        if (( virtAddr >= noffH.code.virtualAddr ) &&
+            ( virtAddr < noffH.code.virtualAddr + noffH.code.size ))
+        {
+            ( *segPtr ) = noffH.code;
+            return 0;
+        }
+    }
+    if (noffH.initData.size > 0) {
+        if (( virtAddr >= noffH.initData.virtualAddr ) &&
+            ( virtAddr < noffH.initData.virtualAddr + noffH.initData.size ))
+        {
+            ( *segPtr ) = noffH.initData;
+            return 1;
+        }
+    }
+    if (noffH.uninitData.size > 0) {
+        if (( virtAddr >= noffH.uninitData.virtualAddr ) &&
+            ( virtAddr < noffH.uninitData.virtualAddr + noffH.uninitData.size ))
+        {
+            ( *segPtr ) = noffH.uninitData;
+            return 2;
+        }
+    }
+    return 3;
+}
+
+
+
+
 /* 
 int AddrSpace::pageFault(int vpn){
     stats->numPageFaults++;
@@ -316,3 +350,76 @@ unsigned int AddrSpace::getNumPages()
 {
     return numPages;
 }
+int AddrSpace::loadPage(int vpn) {
+    int readAddr, physAddr, size, segOffs;
+    int virtAddr = vpn * PageSize;
+    int offs = 0;
+    Segment seg;
+    bool readFromFile=FALSE;
+    
+    pageTable[vpn].readOnly = FALSE;
+    do {
+        physAddr = pageTable[vpn].physicalPage * PageSize + offs;
+        switch (whichSeg(virtAddr, &seg)) {
+        case 0://code
+        {
+            segOffs = virtAddr - seg.virtualAddr;
+            readAddr = segOffs + seg.inFileAddr;
+            size = min(PageSize - offs, seg.size - segOffs);
+            exeFile->ReadAt(&( machine->mainMemory[physAddr] ), size, readAddr);
+            readFromFile=TRUE;
+            if (size==PageSize){
+                pageTable[vpn].readOnly = TRUE;
+            }
+            if (vpn==1)
+                ASSERT(machine->mainMemory[physAddr]==7);
+            break;
+        }
+        case 1://initData
+        {
+            segOffs = virtAddr - seg.virtualAddr;
+            readAddr = segOffs + seg.inFileAddr;
+            size = min(PageSize - offs, seg.size - segOffs);
+            exeFile->ReadAt(&( machine->mainMemory[physAddr] ), size, readAddr);
+            readFromFile=TRUE;
+            break;
+        }
+        case 2://uninitData
+        {
+            size = min(PageSize - offs, seg.size + seg.virtualAddr - virtAddr);
+            bzero(&( machine->mainMemory[physAddr] ), size);
+            break;
+        }
+        case 3://stack or others
+        {
+            bzero(&( machine->mainMemory[physAddr] ), PageSize - offs);
+            return 0;//don't use break
+        }
+        }
+    } while (offs < PageSize);
+    //if (readFromFile)
+        //stats->numPageIns++;
+    return 0;
+}
+int AddrSpace::pageFault(int vpn) {
+    //stats->numPageFaults++;
+    //pageTable[vpn].physicalPage = mm->AllocPage(this,vpn);
+    if (pageTable[vpn].physicalPage == -1){
+        printf("Error: run out of physical memory\n");
+        //to do://should yield and wait for memory space and try again?
+        ASSERT(FALSE);//panic at this time
+    }
+
+    //if(backingStore->PageIn(&pageTable[vpn])==-1)
+        //loadPage(vpn);
+    
+    pageTable[vpn].valid = TRUE;
+    pageTable[vpn].use = FALSE;
+    pageTable[vpn].dirty = FALSE;
+    //pageTable[vpn].readOnly is modified in loadPage()
+    
+    return 0;
+}
+
+
+
