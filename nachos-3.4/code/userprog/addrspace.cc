@@ -129,9 +129,9 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
         // for now, must quit the program if it does not fit into memory
         if (executable)
             delete executable; // StartProcess() is not able to run the program
-        // printf("Exit(tid): %d\n", tid);
-        // Exit(tid);
-    }
+        printf("Exit(tid): %d\n", tid);
+        Exit(tid);
+            }
 
     // first, set up the translation
     if (numPages <= NumPhysPages)
@@ -162,8 +162,8 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
                 // for now, must quit the program if it does not fit into memory
                 if (executable)
                     delete executable; // StartProcess() is not able to run the program
-                printf("Exit(tid): %d\n", tid);
-                Exit(tid);
+                // printf("Exit(tid): %d\n", tid);
+                // Exit(tid);
                 //-------for now, this should not execute-------//
             }
             else if (openFrame != i)  // contiguous
@@ -171,8 +171,6 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
                 bitMap->Clear(openFrame);
                 printf("AddrSpace: Cleared Frame %d.\n", i);
             }
-            else
-            {
                 pageTable[i].physicalPage = i; // set the open frame
 
                 //set true for task 2, bitmap, set offset for mainmem readat
@@ -183,7 +181,6 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
                 pageTable[i].readOnly = FALSE; // if the code segment was entirely on
                                                // a separate page, we could set its
                                                // pages to be read-only
-            }
         }
         printf("AddrSpace: Initialization complete (made pageTable).\n");
         // to zero the unitialized data segment
