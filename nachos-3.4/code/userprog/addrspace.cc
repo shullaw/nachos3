@@ -174,7 +174,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
                 pageTable[i].physicalPage = i; // set the open frame
 
                 //set true for task 2, bitmap, set offset for mainmem readat
-                pageTable[i].valid = TRUE; // set this valid bit to false to cause pageFaultException and handle in exception.cc
+                pageTable[i].valid = FALSE; //---Ryan---- set this valid bit to false to cause pageFaultException and handle in exception.cc
                 // AGAIN, pageTable[i].valud is only TRUE for TASK 2 according to Taylor // *SHULLAW*------//
                 pageTable[i].use = FALSE; // handle page loading later during page fault
                 pageTable[i].dirty = FALSE;
@@ -195,7 +195,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
             executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
                                noffH.code.size, noffH.code.inFileAddr);
         }
-        if (noffH.initData.size > 0)
+        if (noffH.initData.size > 0)TranslationEntry *pageTable;
         {
             DEBUG('a', "Initializing data segment, at 0x%x, size %d\n",
                   noffH.initData.virtualAddr, noffH.initData.size);
@@ -216,7 +216,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
         int sizeOfBuffer = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
         char *buffer = new char[sizeOfBuffer];
         // Copy the code segment into the buffer executable->ReadAt(buffer, sizeOfBuffer, 0);
-        executable->ReadAt(buffer, sizeOfBuffer, 0);
+        //executable->ReadAt(buffer, sizeOfBuffer, 0); -----Ryan--------
         // Delete pointer to buffer and swap files so that program does not consume memory
         delete[] buffer;
         // delete executable;
@@ -224,7 +224,25 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
     }
     /* ------------------SHULLAW-------------------------------- */
 }
+TranslationEntry* AddrSpace::getPageTable()
+{
+    return pageTable;
+}
+/* 
+int AddrSpace::pageFault(int vpn){
+    stats->numPageFaults++;
+    //pageTable[vpn].physicalPage = mm->AllocPage(this, vpn);
+    if(pageTable[vpn].physicalPage == -1){
+        printf("Error: Out of Memore\n");
+        ASSERT(FALSE);
+    }
+    pageTable[vpn].valid = TRUE;
+    pageTable[vpn].use = FALSE;
+    pageTable[vpn].dirty = FALSE;
 
+    return 0;
+}
+*/
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
 // 	Dealloate an address space.  Nothing for now!
