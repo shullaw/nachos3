@@ -300,6 +300,27 @@ ExceptionHandler(ExceptionType which)
 			delete currentThread->space;
 		currentThread->Finish();	// Delete the thread.
 		break;
+	case PageFaultException : // ----------------Ryan Begin------------------
+		printf("ERROR: PageFaultException, called by thread %i.\n",currentThread->getID());
+		if (currentThread->getName() == "main")
+			ASSERT(FALSE);  //Not the way of handling an exception.
+		if(currentThread->space){	// Delete the used memory from the process.
+			int badVAddr = machine->ReadRegister(BadVAddrReg);
+			int badVPage = badVAddr/PageSize;
+			int openFrame = bitMap->Find();
+			TranslationEntry* whoKnows = currentThread->space->getPageTable();
+			whoKnows[badVPage].valid = TRUE;
+			printf("Is it here??");
+			if (openFrame == -1){
+				printf("No available frames for thread %d!!", currentThread->getID());
+                Exit(currentThread->getID());  // for offset
+            }
+			printf("\nnumPages: %d", currentThread->space->getNumPages());
+			//bitMap->Clear(currentThread->space->getNumPages());
+			//delete currentThread->space;
+		}
+		currentThread->Finish();	// Delete the thread.			
+		break;					// ----------------Ryan End-----------------
 	case BusErrorException :
 		printf("ERROR: BusErrorException, called by thread %i.\n",currentThread->getID());
 		if (currentThread->getName() == "main")

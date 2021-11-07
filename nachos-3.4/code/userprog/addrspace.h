@@ -44,7 +44,14 @@ class AddrSpace {
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch 
     unsigned int getNumPages();  // return numPages
+    TranslationEntry* getPageTable();
+    int loadPage(int vpn);
+    int whichSeg(int virtAddr, Segment* segPtr);
+    int pageFault(int vpn);
   private:
+    NoffHeader noffH;
+    OpenFile *exeFile;
+    //BackingStore* backingStore;
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
     unsigned int numPages;		// Number of pages in the virtual 

@@ -174,7 +174,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
                 pageTable[i].physicalPage = i; // set the open frame
 
                 //set true for task 2, bitmap, set offset for mainmem readat
-                pageTable[i].valid = TRUE; // set this valid bit to false to cause pageFaultException and handle in exception.cc
+                pageTable[i].valid = FALSE; //---Ryan---- set this valid bit to false to cause pageFaultException and handle in exception.cc
                 // AGAIN, pageTable[i].valud is only TRUE for TASK 2 according to Taylor // *SHULLAW*------//
                 pageTable[i].use = FALSE; // handle page loading later during page fault
                 pageTable[i].dirty = FALSE;
@@ -195,7 +195,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
             executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
                                noffH.code.size, noffH.code.inFileAddr);
         }
-        if (noffH.initData.size > 0)
+        if (noffH.initData.size > 0)TranslationEntry *pageTable;
         {
             DEBUG('a', "Initializing data segment, at 0x%x, size %d\n",
                   noffH.initData.virtualAddr, noffH.initData.size);
@@ -216,7 +216,7 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
         int sizeOfBuffer = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
         char *buffer = new char[sizeOfBuffer];
         // Copy the code segment into the buffer executable->ReadAt(buffer, sizeOfBuffer, 0);
-        executable->ReadAt(buffer, sizeOfBuffer, 0);
+        //executable->ReadAt(buffer, sizeOfBuffer, 0); -----Ryan--------
         // Delete pointer to buffer and swap files so that program does not consume memory
         delete[] buffer;
         // delete executable;
@@ -224,7 +224,59 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
     }
     /* ------------------SHULLAW-------------------------------- */
 }
+TranslationEntry* AddrSpace::getPageTable()
+{
+    return pageTable;
+}
+//determine which segment does a address located in
+//return value: 
+int AddrSpace::whichSeg(int virtAddr, Segment* segPtr) {
+    
+    if (noffH.code.size > 0) {
+        if (( virtAddr >= noffH.code.virtualAddr ) &&
+            ( virtAddr < noffH.code.virtualAddr + noffH.code.size ))
+        {
+            ( *segPtr ) = noffH.code;
+            return 0;
+        }
+    }
+    if (noffH.initData.size > 0) {
+        if (( virtAddr >= noffH.initData.virtualAddr ) &&
+            ( virtAddr < noffH.initData.virtualAddr + noffH.initData.size ))
+        {
+            ( *segPtr ) = noffH.initData;
+            return 1;
+        }
+    }
+    if (noffH.uninitData.size > 0) {
+        if (( virtAddr >= noffH.uninitData.virtualAddr ) &&
+            ( virtAddr < noffH.uninitData.virtualAddr + noffH.uninitData.size ))
+        {
+            ( *segPtr ) = noffH.uninitData;
+            return 2;
+        }
+    }
+    return 3;
+}
 
+
+
+
+/* 
+int AddrSpace::pageFault(int vpn){
+    stats->numPageFaults++;
+    //pageTable[vpn].physicalPage = mm->AllocPage(this, vpn);
+    if(pageTable[vpn].physicalPage == -1){
+        printf("Error: Out of Memore\n");
+        ASSERT(FALSE);
+    }
+    pageTable[vpn].valid = TRUE;
+    pageTable[vpn].use = FALSE;
+    pageTable[vpn].dirty = FALSE;
+
+    return 0;
+}
+*/
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
 // 	Dealloate an address space.  Nothing for now!
@@ -298,3 +350,76 @@ unsigned int AddrSpace::getNumPages()
 {
     return numPages;
 }
+int AddrSpace::loadPage(int vpn) {
+    int readAddr, physAddr, size, segOffs;
+    int virtAddr = vpn * PageSize;
+    int offs = 0;
+    Segment seg;
+    bool readFromFile=FALSE;
+    
+    pageTable[vpn].readOnly = FALSE;
+    do {
+        physAddr = pageTable[vpn].physicalPage * PageSize + offs;
+        switch (whichSeg(virtAddr, &seg)) {
+        case 0://code
+        {
+            segOffs = virtAddr - seg.virtualAddr;
+            readAddr = segOffs + seg.inFileAddr;
+            size = min(PageSize - offs, seg.size - segOffs);
+            exeFile->ReadAt(&( machine->mainMemory[physAddr] ), size, readAddr);
+            readFromFile=TRUE;
+            if (size==PageSize){
+                pageTable[vpn].readOnly = TRUE;
+            }
+            if (vpn==1)
+                ASSERT(machine->mainMemory[physAddr]==7);
+            break;
+        }
+        case 1://initData
+        {
+            segOffs = virtAddr - seg.virtualAddr;
+            readAddr = segOffs + seg.inFileAddr;
+            size = min(PageSize - offs, seg.size - segOffs);
+            exeFile->ReadAt(&( machine->mainMemory[physAddr] ), size, readAddr);
+            readFromFile=TRUE;
+            break;
+        }
+        case 2://uninitData
+        {
+            size = min(PageSize - offs, seg.size + seg.virtualAddr - virtAddr);
+            bzero(&( machine->mainMemory[physAddr] ), size);
+            break;
+        }
+        case 3://stack or others
+        {
+            bzero(&( machine->mainMemory[physAddr] ), PageSize - offs);
+            return 0;//don't use break
+        }
+        }
+    } while (offs < PageSize);
+    //if (readFromFile)
+        //stats->numPageIns++;
+    return 0;
+}
+int AddrSpace::pageFault(int vpn) {
+    //stats->numPageFaults++;
+    //pageTable[vpn].physicalPage = mm->AllocPage(this,vpn);
+    if (pageTable[vpn].physicalPage == -1){
+        printf("Error: run out of physical memory\n");
+        //to do://should yield and wait for memory space and try again?
+        ASSERT(FALSE);//panic at this time
+    }
+
+    //if(backingStore->PageIn(&pageTable[vpn])==-1)
+        //loadPage(vpn);
+    
+    pageTable[vpn].valid = TRUE;
+    pageTable[vpn].use = FALSE;
+    pageTable[vpn].dirty = FALSE;
+    //pageTable[vpn].readOnly is modified in loadPage()
+    
+    return 0;
+}
+
+
+
