@@ -319,7 +319,24 @@ int AddrSpace::pageFault(int vpn)
 
 AddrSpace::~AddrSpace()
 {
-    delete[] pageTable;
+    for (int j = 0; j < NumPhysPages; j++)
+    {
+        bitMap->Clear(j);
+    }
+    // printf("Page after deallocating\n");
+    // bitMap->Print();
+    // printf("-------------------------------------------\n");
+    if (pageTable != NULL)
+    {
+        delete pageTable;
+        printf("AddrSpace: Deallocated pageTable.\n");
+    }
+    if (swapFileName)
+    {
+    // printf("swapfilename: %s\n", swapFileName);
+    fileSystem->Remove(swapFileName);
+    printf("AddrSpace: Deallocated %s.\n", swapFileName);
+    }
 }
 
 //----------------------------------------------------------------------

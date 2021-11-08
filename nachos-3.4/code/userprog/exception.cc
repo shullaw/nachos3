@@ -338,6 +338,8 @@ void ExceptionHandler(ExceptionType which)
 			if (executable == NULL)
 			{
 				// do error handling
+				printf("Unable to open file %s\n", currentThread->space->swapFileName);
+				Exit(currentThread->getID());
 			}
 
 			// Read content of the swapfile into main memory
