@@ -51,6 +51,7 @@ class AddrSpace {
     void demandPage(int vpn);
 
     OpenFile *executable;
+    char *swapFileName;
     NoffHeader noffH;
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!

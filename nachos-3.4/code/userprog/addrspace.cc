@@ -96,9 +96,6 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
 {
     NoffHeader noffH;
     unsigned int i, size;
-    int tid, openFrame, startFrame;
-    this->executable = executable;
-
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) &&
         (WordToHost(noffH.noffMagic) == NOFFMAGIC))
@@ -106,18 +103,50 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
     if (noffH.noffMagic != NOFFMAGIC)
     {
         printf("Not a noff file: %d\n", noffH.noffMagic);
-        Exit(-1);
+        return;
     }
 
     // how big is address space?
-    size = noffH.code.size + noffH.initData.size + noffH.uninitData.size; // we need to increase the size
-                                                                          // to leave room for the stack
+    size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize; // we need to increase the size
+                                                                                          // to leave room for the stack
 
-    this->actualSize = size; // actual size of the program
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
-    // machine->DumpState();  // Machine registers
 
+    swapFileName = new char[100];
+    sprintf(swapFileName, "%d.swap", threadID);
+    bool success = fileSystem->Create(swapFileName, size);
+    if (!success)
+    {
+        // handle error with swapfile creation
+    }
+
+    OpenFile *swapFile = fileSystem->Open(swapFileName);
+    if (swapFile == NULL)
+    {
+        // handle error withg swapfile opening
+    }
+
+    // Copy contents of executable into swapfile.
+    char *buffer = new char[size];
+    executable->ReadAt(buffer, size, sizeof(noffH));
+    swapFile->WriteAt(buffer, size, 0);
+    delete[] buffer;
+    delete swapFile;
+
+    DEBUG('a', "Initializing address space, num pages %d, size %d\n",
+          numPages, size);
+
+    // first, set up the translation
+    pageTable = new TranslationEntry[numPages];
+    for (i = 0; i < numPages; i++)
+    {
+        pageTable[i].virtualPage = i;
+        pageTable[i].valid = FALSE;
+        pageTable[i].use = FALSE;
+        pageTable[i].dirty = FALSE;
+        pageTable[i].readOnly = FALSE;
+    }
     // ASSERT(numPages <= NumPhysPages);		// check we're not trying
     // to run anything too big --
     // at least until we have
@@ -127,66 +156,78 @@ AddrSpace::AddrSpace(OpenFile *executable, int threadID) /* ------------------SH
     printf("AddrSpace: Number of pages: %d\n", numPages);
     printf("AddrSpace: Number of physical pages: %d\n", NumPhysPages);
     printf("AddrSpace: threadID: %d\n", threadID);
+    if (virtualOption == 0)
+    {
+        printf("AddrSpace: Paging Option: Demand Paging\n");
+    }
+    if (virtualOption == 1)
+    {
+        printf("AddrSpace: Paging Option: FIFO (not implemented!)\n");
+    }
+    if (virtualOption == 2)
+    {
+        printf("AddrSpace: Paging Option: Rando (not implemented!)\n");
+    }
+    printf("#--------------------------------------------------------#\n");
 
     int numAvailPages = bitMap->NumClear();
-    if (numPages > numAvailPages)
-    {
-        tid = -1 * (threadID + 1);
-        printf("AddrSpace: Initialization failed (numPages > NumPhysPages) %d.\n", numAvailPages);
-        printf("AddrSpace: Error code: %d\n", tid);
-        // for now, must quit the program if it does not fit into memory
-        if (executable)
-            delete executable; // StartProcess() is not able to run the program
-        printf("Exit(tid): %d\n", tid);
-        Exit(tid);
-    }
+    // if (numPages > numAvailPages)
+    // {
+    //     tid = -1 * (threadID + 1);
+    //     printf("AddrSpace: Initialization failed (numPages > NumPhysPages) %d.\n", numAvailPages);
+    //     printf("AddrSpace: Error code: %d\n", tid);
+    //     // for now, must quit the program if it does not fit into memory
+    //     if (executable)
+    //         delete executable; // StartProcess() is not able to run the program
+    //     printf("Exit(tid): %d\n", tid);
+    //     Exit(tid);
+    // }
 
-    // first, set up the translation
-    if (numPages <= numAvailPages) // commented out 11/7, needs to be number of remaining pages
-    {
-        pageTable = new TranslationEntry[numPages];
-        for (i = 0; i < numPages; i++)
-        {
-            // printf("Bitmap BEFORE Find(): ");
-            // bitMap->Print();
-            // openFrame = bitMap->Find(); // keeping track for offset
-            // printf("Bitmap AFTER Find(): ");
-            // bitMap->Print();
-            pageTable[i].virtualPage = i;  // for now, virtual page # = phys page #
-                                           // pageTable[i].physicalPage = i;  // not necessary, since we set valid bit to false
-            pageTable[i].physicalPage = i; // to not load into mainMemory, but into swap file
-            //set true for task 2, bitmap, set offset for mainmem readat
-            pageTable[i].valid = FALSE; //---Ryan---- set this valid bit to false to cause pageFaultException and handle in exception.cc
-            // AGAIN, pageTable[i].valud is only TRUE for TASK 2 according to Taylor // *SHULLAW*------//
-            pageTable[i].use = FALSE; // handle page loading later during page fault
-            pageTable[i].dirty = FALSE;
-            pageTable[i].readOnly = FALSE;        // if the code segment was entirely on
-                                                  // a separate page, we could set its
-                                                  // pages to be read-only
-            memset(machine->mainMemory, 0, size); // replaces the first "size" addresses of mainMemory with 0
-            // machine->DumpState();
-        }
-        // printf("AddrSpace: Initialization complete (made pageTable).\n");
-        /* ------------------SHULLAW-------------------------------- */
-        // Create swapfile
-        // Create file name based on threadID
-        char swapFileName[20]; // swapfile = 8 + 100000 threads = 5 + 1 = 14...so uhh just being safe with 20
-        sprintf(swapFileName, "swapfile%d", threadID);
-        printf("SWIZZLE FIZZLE: %s\n", swapFileName);
-        int sizeOfBuffer = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
-        // Create a buffer (temporary array of characters) of size equal to noffH.code.size + noffH.initData.size + noffH.uninitData.size
-        char *buffer = new char[sizeOfBuffer];
-        fileSystem->Create(swapFileName, sizeOfBuffer); // create swap file and allocate space for it
-        fileSystem->Open(swapFileName);                 // open swap file
-        // Copy the code segment into the buffer executable->ReadAt(buffer, sizeOfBuffer, 0);
-        //executable->ReadAt(buffer, sizeOfBuffer, 0); -----Ryan--------
-        // Delete pointer to buffer and swap files so that program does not consume memory
-        delete[] buffer;
-        // delete executable;
-        // Handle page table
-    }
+    // // first, set up the translation
+    // if (numPages <= numAvailPages) // commented out 11/7, needs to be number of remaining pages
+    // {
+    //     pageTable = new TranslationEntry[numPages];
+    //     for (i = 0; i < numPages; i++)
+    //     {
+    //         // printf("Bitmap BEFORE Find(): ");
+    //         // bitMap->Print();
+    //         // openFrame = bitMap->Find(); // keeping track for offset
+    //         // printf("Bitmap AFTER Find(): ");
+    //         // bitMap->Print();
+    //         pageTable[i].virtualPage = i;  // for now, virtual page # = phys page #
+    //                                        // pageTable[i].physicalPage = i;  // not necessary, since we set valid bit to false
+    //         pageTable[i].physicalPage = i; // to not load into mainMemory, but into swap file
+    //         //set true for task 2, bitmap, set offset for mainmem readat
+    //         pageTable[i].valid = FALSE; //---Ryan---- set this valid bit to false to cause pageFaultException and handle in exception.cc
+    //         // AGAIN, pageTable[i].valud is only TRUE for TASK 2 according to Taylor // *SHULLAW*------//
+    //         pageTable[i].use = FALSE; // handle page loading later during page fault
+    //         pageTable[i].dirty = FALSE;
+    //         pageTable[i].readOnly = FALSE;        // if the code segment was entirely on
+    //                                               // a separate page, we could set its
+    //                                               // pages to be read-only
+    //         memset(machine->mainMemory, 0, size); // replaces the first "size" addresses of mainMemory with 0
+    //         // machine->DumpState();
+    // }
+    // printf("AddrSpace: Initialization complete (made pageTable).\n");
     /* ------------------SHULLAW-------------------------------- */
+    // Create swapfile
+    // Create file name based on threadID
+    // char swapFileName[20]; // swapfile = 8 + 100000 threads = 5 + 1 = 14...so uhh just being safe with 20
+    // sprintf(swapFileName, "swapfile%d", threadID);
+    // printf("SWIZZLE FIZZLE: %s\n", swapFileName);
+    // int sizeOfBuffer = noffH.code.size + noffH.initData.size + noffH.uninitData.size;
+    // // Create a buffer (temporary array of characters) of size equal to noffH.code.size + noffH.initData.size + noffH.uninitData.size
+    // char *buffer = new char[sizeOfBuffer];
+    // fileSystem->Create(swapFileName, sizeOfBuffer); // create swap file and allocate space for it
+    // fileSystem->Open(swapFileName);                 // open swap file
+    // // Copy the code segment into the buffer executable->ReadAt(buffer, sizeOfBuffer, 0);
+    // //executable->ReadAt(buffer, sizeOfBuffer, 0); -----Ryan--------
+    // // Delete pointer to buffer and swap files so that program does not consume memory
+    // delete[] buffer;
+    // // delete executable;
+    // // Handle page table
 }
+/* ------------------SHULLAW-------------------------------- */
 
 void AddrSpace::demandPage(int vpn)
 {
@@ -210,7 +251,7 @@ void AddrSpace::demandPage(int vpn)
         else
         {
             pageTable[vpn].physicalPage = vpn;
-            machine->mainMemory[vpn]; 
+            machine->mainMemory[vpn];
             pageTable[vpn].valid = TRUE;
             this->loadPage(vpn);
         }
@@ -267,7 +308,6 @@ int AddrSpace::pageFault(int vpn)
     pageTable[vpn].valid = TRUE;
     pageTable[vpn].use = FALSE;
     pageTable[vpn].dirty = FALSE;
-    //pageTable[vpn].readOnly is modified in loadPage()
 
     return 0;
 }

@@ -34,7 +34,7 @@
 static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
 Thread *getID(int toGet);
-Lock* memoryPagingLock=NULL;
+Lock *memoryPagingLock = NULL;
 
 // end FA98
 
@@ -310,23 +310,58 @@ void ExceptionHandler(ExceptionType which)
 			delete currentThread->space;
 		currentThread->Finish(); // Delete the thread.
 		break;
-		 // ----------------Ryan Begin------------------
+		// ----------------Ryan Begin------------------
 	case PageFaultException:
 	{
-		bitMap->ExtraOutput();
-		int badVPage = machine->ReadRegister(BadVAddrReg) / PageSize;
-		currentThread->space->demandPage(badVPage);
-		// printf("badVPage: %d\n", badVPage);
-		int freePhysicalPage = currentThread->space->openFrame;
-		printf("\nnumPages: %d\n", currentThread->space->numPages);
-		// currentThread->space->executable->ReadAt(&(machine->mainMemory[freePhysicalPage * PageSize]), PageSize, badVPage * PageSize);
-		bitMap->Clear(currentThread->space->numPages);
-		if (currentThread->space){
-			delete currentThread->space;
+		printf("PageFaultException\n");
+		stats->numPageFaults++;
+		int badVAddr = machine->ReadRegister(BadVAddrReg);
+		int badVpage = divRoundDown(badVAddr, PageSize);
+		int freePage = bitMap->Find(); //find first available free page
+		printf("Bitmap after page allocation\n");
+		bitMap->Print();
+
+		if (freePage == -1)
+		{
+			printf("No free page available\n");
 		}
-		currentThread->Finish(); // Delete the thread.
+
+		// Got a free page
+		else
+		{
+
+			if (currentThread->space->swapFileName == NULL)
+			{
+			}
+
+			OpenFile *executable = fileSystem->Open(currentThread->space->swapFileName);
+			if (executable == NULL)
+			{
+				// do error handling
+			}
+
+			// Read content of the swapfile into main memory
+			executable->ReadAt(&(machine->mainMemory[freePage * PageSize]), PageSize, badVpage * PageSize);
+			currentThread->space->pageTable[badVpage].physicalPage = freePage;
+			currentThread->space->pageTable[badVpage].valid = TRUE;
+			delete executable;
+		}
+
 		break;
-		}					 // ----------------Ryan End-----------------
+		// bitMap->ExtraOutput();
+		// int badVPage = machine->ReadRegister(BadVAddrReg) / PageSize;
+		// currentThread->space->demandPage(badVPage);
+		// // printf("badVPage: %d\n", badVPage);
+		// int freePhysicalPage = currentThread->space->openFrame;
+		// printf("\nnumPages: %d\n", currentThread->space->numPages);
+		// // currentThread->space->executable->ReadAt(&(machine->mainMemory[freePhysicalPage * PageSize]), PageSize, badVPage * PageSize);
+		// bitMap->Clear(currentThread->space->numPages);
+		// if (currentThread->space){
+		// 	delete currentThread->space;
+		// }
+		// currentThread->Finish(); // Delete the thread.
+		// break;
+	} // ----------------Ryan End-----------------
 	case BusErrorException:
 		printf("ERROR: BusErrorException, called by thread %i.\n", currentThread->getID());
 		if (currentThread->getName() == "main")
