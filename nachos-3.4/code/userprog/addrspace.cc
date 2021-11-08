@@ -22,6 +22,7 @@
 MemoryManager *memorymanager;
 ProcessTable *processtable;
 Swap *swapspace;
+
 #ifdef HOST_SPARC
 #include <strings.h>
 #endif
@@ -32,7 +33,7 @@ Swap *swapspace;
 //	object file header, in case the file was generated on a little
 //	endian machine, and we're now running on a big endian machine.
 //----------------------------------------------------------------------
-// taslk
+
 static void
 SwapHeader(NoffHeader *noffH)
 {

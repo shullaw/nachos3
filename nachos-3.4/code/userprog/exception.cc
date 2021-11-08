@@ -29,12 +29,15 @@
 #include "addrspace.h" // FA98
 #include "sysdep.h"	   // FA98
 
+
 // begin FA98
 
 static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
 Thread *getID(int toGet);
-Lock *memoryPagingLock = NULL;
+// FIFO List for Inverted Page Table
+FIFO = new List();
+
 
 // end FA98
 
@@ -323,7 +326,22 @@ void ExceptionHandler(ExceptionType which)
 
 		if (freePage == -1)
 		{
-			printf("No free page available\n");
+			if (virtualOption==0)
+				printf("ERROR: No free page available, called by thread %i.\n", currentThread->getID());
+				Exit(currentThread->getID());
+		// 	else if (virtualOption==1)
+		// 	{
+		// 		// implement FIFO page replacement
+		// 		// find the oldest page in the page table
+		// 		// find the address space that owns it
+		// 		// set valid bit to false and claim as if free page
+		// 		// IPT->first page or somethin ?
+		// 	}
+		// 	else if (virtualOption==2)
+		// 	{
+
+		// 	}
+				
 		}
 
 		// Got a free page
@@ -346,6 +364,7 @@ void ExceptionHandler(ExceptionType which)
 			executable->ReadAt(&(machine->mainMemory[freePage * PageSize]), PageSize, badVpage * PageSize);
 			currentThread->space->pageTable[badVpage].physicalPage = freePage;
 			currentThread->space->pageTable[badVpage].valid = TRUE;
+			// FIFO.append(currentThread->getID());
 			delete executable;
 		}
 
