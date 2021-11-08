@@ -15,24 +15,21 @@
 
 #include "copyright.h"
 #include "filesys.h"
-
 #include "noff.h"  // for pageSize
-#include "synch.h" // for lock
-class Semaphore;
-class Lock;
-class BitMap;
+
 
 // for uniprogramming
 #define UserStackSize		1024
 
 // for multiprogramming
-#define UserStackNumPage 64  // increase this as necessary!
+// #define UserStackNumPage 64  // increase this as necessary!
 // #define UserStackSize		(UserStackNumPage * PageSize)  // multiple of pageSize
 
-#define MaxUserThreads      16  // UserThreads * UserStackNumPage = UserStackSize
+// #define MaxUserThreads      16  // UserThreads * UserStackNumPage = UserStackSize
 
 class AddrSpace {
   public:
+
     AddrSpace(OpenFile *executable, int threadID);	// Create an address space,
 					// initializing it with the program
 					// stored in the file "executable"
@@ -42,20 +39,27 @@ class AddrSpace {
           // before jumping to user code
 
     void SaveState();			// Save/restore address space-specific
-    void RestoreState();		// info on a context switch 
-    unsigned int getNumPages();  // return numPages
-    TranslationEntry* getPageTable();
+    void RestoreState();		// info on a context switch
+    // int virtToPhys(int virtAddr);
+    // void FreeMem();
     int loadPage(int vpn);
-    int whichSeg(int virtAddr, Segment* segPtr);
+    void loadFromFile(int vpn, int physAddr);
     int pageFault(int vpn);
-  private:
+    int whichSeg(int vpn, Segment *segPtr);
+    int PageIn(TranslationEntry *pte);
+
+    void demandPage(int vpn);
+
+    OpenFile *executable;
+    char *swapFileName;
     NoffHeader noffH;
-    OpenFile *exeFile;
-    //BackingStore* backingStore;
     TranslationEntry *pageTable;	// Assume linear page table translation
 					// for now!
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
+    int actualSize, uniqid, openFrame;
+    bool *valid;
+
 };
 
 #endif // ADDRSPACE_H

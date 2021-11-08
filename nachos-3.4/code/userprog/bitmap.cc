@@ -8,6 +8,7 @@
 
 #include "copyright.h"
 #include "bitmap.h"
+#include "system.h"
 
 //----------------------------------------------------------------------
 // BitMap::BitMap
@@ -165,3 +166,20 @@ BitMap::WriteBack(OpenFile *file)
 {
    file->WriteAt((char *)map, numWords * sizeof(unsigned), 0);
 }
+
+void BitMap::ExtraOutput()   // print extra information with arg -E
+{
+    if (extraOutput)
+    {
+        int badVPage = machine->ReadRegister(BadVAddrReg) / PageSize;
+        printf("#--------------------------------------------------------------------#\n");
+        printf("ERROR: PageFaultException, called by thread %i requesting virtual page %d.\n", currentThread->getID(), badVPage);
+        printf("#--------------------------------------------------------------------#\n");
+        printf("Swap out physical page %d from process %d.\n\n", machine->pageTable[badVPage].physicalPage, currentThread->getID());
+        printf("#--------------------------------------------------------------------#\n");
+        printf("Virtual Page %d removed.\n\n", badVPage);
+        printf("#--------------------------------------------------------------------#\n");
+
+    }
+}
+

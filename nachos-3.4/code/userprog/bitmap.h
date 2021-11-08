@@ -51,6 +51,7 @@ class BitMap {
     // write the bitmap to a file
     void FetchFrom(OpenFile *file); 	// fetch contents from disk 
     void WriteBack(OpenFile *file); 	// write contents to disk
+    void ExtraOutput();   // print extra information with arg -E
 
   private:
     int numBits;			// number of bits in the bitmap
