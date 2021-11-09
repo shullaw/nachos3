@@ -18,10 +18,6 @@
 #include "copyright.h"
 #include "system.h"
 #include "addrspace.h"
-#include "memoryManager.h"
-MemoryManager *memorymanager;
-ProcessTable *processtable;
-Swap *swapspace;
 
 #ifdef HOST_SPARC
 #include <strings.h>
