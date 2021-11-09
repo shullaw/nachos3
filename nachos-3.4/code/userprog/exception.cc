@@ -28,16 +28,18 @@
 #include "syscall.h"
 #include "addrspace.h" // FA98
 #include "sysdep.h"	   // FA98
-
-
 // begin FA98
 
 static int SRead(int addr, int size, int id);
 static void SWrite(char *buffer, int size, int id);
 Thread *getID(int toGet);
-// FIFO List for Inverted Page Table
-FIFO = new List();
-
+// FIFO List for Inverted Page Table //
+// List FIFO = new List();
+// These two arrays simulate the Inverted Page Table //
+// IPT holds pointer to Thread
+Thread *IPT[NumPhysPages];
+// IPT_VP holds virtual page number for that thread which is mapped to physical page
+int IPT_VP[NumPhysPages];
 
 // end FA98
 
@@ -321,27 +323,31 @@ void ExceptionHandler(ExceptionType which)
 		int badVAddr = machine->ReadRegister(BadVAddrReg);
 		int badVpage = divRoundDown(badVAddr, PageSize);
 		int freePage = bitMap->Find(); //find first available free page
+		printf("FREE PAGE: %c", freePage);
 		printf("Bitmap after page allocation\n");
 		bitMap->Print();
 
 		if (freePage == -1)
 		{
-			if (virtualOption==0)
+			int pageToEvict;
+			if (virtualOption == 0) // Demand Paging
+			{
 				printf("ERROR: No free page available, called by thread %i.\n", currentThread->getID());
 				Exit(currentThread->getID());
-		// 	else if (virtualOption==1)
-		// 	{
-		// 		// implement FIFO page replacement
-		// 		// find the oldest page in the page table
-		// 		// find the address space that owns it
-		// 		// set valid bit to false and claim as if free page
-		// 		// IPT->first page or somethin ?
-		// 	}
-		// 	else if (virtualOption==2)
-		// 	{
-
-		// 	}
-				
+			}
+			else if (virtualOption == 1) // FIFO
+			{
+				pageToEvict = (int)FIFO->Remove();
+			}
+			else if (virtualOption == 2) // Rando
+			{
+				pageToEvict = (Random() % (NumPhysPages));
+			}
+			// Access thread found in IPT[pageToEvict]
+			if (IPT[pageToEvict]->space->pageTable[IPT_VP[pageToEvict]].dirty == TRUE)
+			{
+				printf("Page %i is dirty, writing to swap\n", pageToEvict);
+			}
 		}
 
 		// Got a free page
@@ -350,6 +356,11 @@ void ExceptionHandler(ExceptionType which)
 
 			if (currentThread->space->swapFileName == NULL)
 			{
+				if (currentThread->getID())
+				{
+					printf("No Swap File found for threadID: %d.\n", currentThread->getID());
+				}
+				Exit(currentThread->getID());
 			}
 
 			OpenFile *executable = fileSystem->Open(currentThread->space->swapFileName);
@@ -359,29 +370,23 @@ void ExceptionHandler(ExceptionType which)
 				printf("Unable to open file %s\n", currentThread->space->swapFileName);
 				Exit(currentThread->getID());
 			}
+			if (virtualOption == 1)
+			{
+				// BROKEN!!!!!!!!!!!
+				// void *fp = &freePage;
+				// FIFO->Append(&fp);
+			}
+			IPT[freePage] = currentThread;
+			IPT_VP[freePage] = badVpage;
 
 			// Read content of the swapfile into main memory
 			executable->ReadAt(&(machine->mainMemory[freePage * PageSize]), PageSize, badVpage * PageSize);
 			currentThread->space->pageTable[badVpage].physicalPage = freePage;
 			currentThread->space->pageTable[badVpage].valid = TRUE;
-			// FIFO.append(currentThread->getID());
 			delete executable;
 		}
 
 		break;
-		// bitMap->ExtraOutput();
-		// int badVPage = machine->ReadRegister(BadVAddrReg) / PageSize;
-		// currentThread->space->demandPage(badVPage);
-		// // printf("badVPage: %d\n", badVPage);
-		// int freePhysicalPage = currentThread->space->openFrame;
-		// printf("\nnumPages: %d\n", currentThread->space->numPages);
-		// // currentThread->space->executable->ReadAt(&(machine->mainMemory[freePhysicalPage * PageSize]), PageSize, badVPage * PageSize);
-		// bitMap->Clear(currentThread->space->numPages);
-		// if (currentThread->space){
-		// 	delete currentThread->space;
-		// }
-		// currentThread->Finish(); // Delete the thread.
-		// break;
 	} // ----------------Ryan End-----------------
 	case BusErrorException:
 		printf("ERROR: BusErrorException, called by thread %i.\n", currentThread->getID());

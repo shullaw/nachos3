@@ -40,15 +40,7 @@ class AddrSpace {
 
     void SaveState();			// Save/restore address space-specific
     void RestoreState();		// info on a context switch
-    // int virtToPhys(int virtAddr);
-    // void FreeMem();
-    int loadPage(int vpn);
     void loadFromFile(int vpn, int physAddr);
-    int pageFault(int vpn);
-    int whichSeg(int vpn, Segment *segPtr);
-    int PageIn(TranslationEntry *pte);
-
-    void demandPage(int vpn);
 
     OpenFile *executable;
     char *swapFileName;
